@@ -1,0 +1,28 @@
+#!/bin/bash
+
+if [[ $# != 4 ]]; then
+    echo "usage: debuild <account> <arch> <distro> <release>"
+    echo ""
+    echo "  account = docker hub (or similar) account name"
+    echo "  arch    = architecture of image (amd64, i386, armhf, arm64, etc.)"
+    echo "  distro  = debian | ubuntu | raspian"
+    echo "  release = name of distro release (jessie, xenial, etc.)"
+    exit 1
+fi
+
+ACCOUNT="${1}"
+ARCH="${2}"
+DISTRO="${3}"
+RELEASE="${4}"
+
+exec docker \
+    run \
+    --privileged \
+    --rm \
+    -it \
+    -v /var/run/docker.sock:/var/run/docker.sock \
+    trapexit/debuild \
+    "${ACCOUNT}" \
+    "${ARCH}" \
+    "${DISTRO}" \
+    "${RELEASE}"

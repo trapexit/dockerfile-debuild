@@ -1,0 +1,22 @@
+#!/bin/bash
+
+if [[ $# != 1 ]]; then
+    echo "usage: debuild-all <account>"
+    exit 1
+fi
+
+DISTROS=(ubuntu debian raspbian)
+RELEASES=(precise trusty xenial wheezy jessie)
+ARCHS=(amd64 i386 arm64 armhf armel powerpc mips mipsel)
+ACCOUNT="${1}"
+
+for distro in "${DISTROS[@]}"
+do
+    for release in "${RELEASES[@]}"
+    do
+        for arch in "${ARCHS[@]}"
+        do
+            ./debuild "${ACCOUNT}" "${arch}" "${distro}" "${release}"
+        done
+    done
+done

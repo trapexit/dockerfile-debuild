@@ -1,0 +1,49 @@
+#!/bin/bash
+
+ACCOUNT="${1}"
+ARCH="${2}"
+DISTRO="${3}"
+RELEASE="${4}"
+DIR="/tmp/debootstrap"
+
+if [[ $# != 4 ]]; then
+    echo "usage: debuild <account> <arch> <distro> <release>"
+    exit 1
+fi
+
+if [ "${DISTRO}" == "ubuntu" ]; then
+    if [[ "${ARCH}" == "amd64" || "${ARCH}" == "i386" ]]; then
+        URL="http://archive.ubuntu.com/ubuntu"
+    else
+        URL="http://ports.ubuntu.com"
+    fi
+elif [ "${DISTRO}" == "debian" ]; then
+    URL="http://http.debian.net/debian"
+elif [ "${DISTRO}" == "raspbian" ]; then
+    URL="http://archive.raspbian.org/raspbian"
+fi
+
+qemu-debootstrap \
+    --no-check-gpg \
+    --variant=buildd \
+    --arch "${ARCH}" "${RELEASE}" "${DIR}" "${URL}"
+if [[ $? != 0 ]]; then
+    echo "debootstrap has errored: exiting"
+    exit 1
+fi
+
+echo "deb ${URL} ${RELEASE} main" | tee "${DIR}/etc/apt/sources.list"
+
+chroot "${DIR}" /usr/bin/apt-get -y update
+chroot "${DIR}" /usr/bin/apt-get -y -f dist-upgrade
+chroot "${DIR}" /usr/bin/apt-get -y clean
+chroot "${DIR}" /usr/bin/apt-get -y autoclean
+chroot "${DIR}" /usr/bin/apt-get -y autoremove
+
+tar -cf - -C "${DIR}" . | \
+    docker import \
+    --change "LABEL distro=${DISTRO}" \
+    --change "LABEL release=${RELEASE}" \
+    --change "LABEL arch=${ARCH}" \
+    --change "CMD /bin/bash" \
+    - "${ACCOUNT}/${DISTRO}:${RELEASE}-${ARCH}"
